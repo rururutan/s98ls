@@ -3,10 +3,13 @@
 #include	"math.h"
 #include	"s98ls.h"
 
-/*------------------------------------------------------------------------------
+bool (*checkS98NoteReg) (BYTE*);
+bool (*checkS98Channel) (BYTE *, int);
 
-------------------------------------------------------------------------------*/
-bool checkS98NoteReg( BYTE *in )
+/**
+ * for PSG / OPN / OPNA
+ */
+bool checkS98OpnaNoteReg( BYTE *in )
 {
 	BYTE checkreg[] = {
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
@@ -23,10 +26,29 @@ bool checkS98NoteReg( BYTE *in )
 	return false;
 }
 
-/*------------------------------------------------------------------------------
+/**
+ * for OPM
+ */
+bool checkS98OpmNoteReg( BYTE *in )
+{
+	BYTE checkreg[] = {
+		0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
+		0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+		0xff
+	};
+	int r = 0;
 
-------------------------------------------------------------------------------*/
-bool checkS98Channel( BYTE *in, int ch )
+	while( checkreg[r] != 0xff ) {
+		if( in[1] == checkreg[r] ) return true;
+		r++;
+	}
+	return false;
+}
+
+/**
+ * for PSG / OPN / OPNA
+ */
+bool checkS98OpnaChannel( BYTE *in, int ch )
 {
 	BYTE	reg[9][3] = {
 		{ 0x00, 0xa0, 0xa4 },
@@ -47,11 +69,34 @@ bool checkS98Channel( BYTE *in, int ch )
 	return false;
 }
 
+/**
+ * for OPM
+ */
+bool checkS98OpmChannel( BYTE *in, int ch )
+{
+	BYTE	reg[8][3] = {
+		{ 0x00, 0x28, 0x30 },
+		{ 0x00, 0x29, 0x31 },
+		{ 0x00, 0x2a, 0x32 },
+		{ 0x00, 0x2b, 0x33 },
+		{ 0x00, 0x2c, 0x34 },
+		{ 0x00, 0x2d, 0x35 },
+		{ 0x00, 0x2e, 0x36 },
+		{ 0x00, 0x2f, 0x37 },
+	};
+
+	if( ch == 0xff ) return true;
+	if( (in[0] == reg[ch][0]) && (in[1] == reg[ch][1]) ) return true;
+	if( (in[0] == reg[ch][0]) && (in[1] == reg[ch][2]) ) return true;
+
+	return false;
+}
+
 /*------------------------------------------------------------------------------
- ダンプデータ中の総OPNAデータ数を取得
+ ダンプデータ中の非Waitデータ数を取得
  @param data [in] S98 dump data
  @param ch   [in] search channel
- @return 総OPNAデータ数
+ @return 総データ数
 ------------------------------------------------------------------------------*/
 int getS98DataNum( BYTE *data, int ch )
 {
@@ -305,6 +350,9 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 		free( in );
 		return 0;
 	}
+
+	checkS98NoteReg = checkS98OpnaNoteReg;
+	checkS98Channel = checkS98OpnaChannel;
 	switch( s98->FormatVer ) {
 	case '1':
 		break;
@@ -318,11 +366,16 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 				 dev->DevType == 0x04 || dev->DevType == 0x0f) {
 				break;
 		    }
+			if ( dev->DevType == 0x05 ) {
+				checkS98NoteReg = checkS98OpmNoteReg;
+				checkS98Channel = checkS98OpmChannel;
+				break;
+			}
 		}
 #ifdef MESSAGETYPE_JAPANESE
-		fprintf( stderr, "OPNA/OPN/PSGのS98ファイルを指定してください\n" );
+		fprintf( stderr, "OPNA/OPN/PSG/OPMのS98ファイルを指定してください\n" );
 #else
-		fprintf( stderr, "Only OPNA/OPN/PSG file\n" );
+		fprintf( stderr, "Only OPNA/OPN/PSG/OPM file\n" );
 #endif
 		free( in );
 		return 0;
@@ -395,7 +448,7 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 void dispHelpMessage( void )
 {
 	fprintf( stderr,
-		"S98 Loop Searcher Version 0.0.5 by Manbow-J / RuRuRu\n"
+		"S98 Loop Searcher Version 0.0.6 by Manbow-J / RuRuRu / UME-3\n"
 #ifdef MESSAGETYPE_JAPANESE
 		"使い方: s98ls <入力ファイル> [<出力ファイル>] [Option]\n"
 		"Option:\n"
