@@ -34,7 +34,15 @@ typedef struct {
 	DWORD	SongNameOffset;
 	DWORD	DumpDataOffset;
 	DWORD	LoopPointOffset;
+	DWORD	DeviceCount;
 } S98HEAD;
+
+typedef struct {
+	DWORD	DevType;
+	DWORD	DevClk;
+	DWORD	DevPan;
+	char	Reserve[4];
+} S98DEV;
 
 /*
 [DUMP DATA FORMAT]

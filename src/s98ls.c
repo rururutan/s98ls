@@ -48,9 +48,12 @@ bool checkS98Channel( BYTE *in, int ch )
 }
 
 /*------------------------------------------------------------------------------
-
+ ダンプデータ中の総OPNAデータ数を取得
+ @param data [in] S98 dump data
+ @param ch   [in] search channel
+ @return 総OPNAデータ数
 ------------------------------------------------------------------------------*/
-int getS98DataNum( FILE *fp, BYTE *data, int ch )
+int getS98DataNum( BYTE *data, int ch )
 {
 	int	n = 0;
 
@@ -83,7 +86,13 @@ int getS98DataNum( FILE *fp, BYTE *data, int ch )
 }
 
 /*------------------------------------------------------------------------------
-
+ S98DATA構造体の生成
+ @param in    [in] S98 data
+ @param ofs   [in] S98 dump data offset
+ @param data  [out] S98DATA structure
+ @param sync1 [in] timer info1
+ @param sync2 [in] timer info2
+ @param ch    [in] search channel
 ------------------------------------------------------------------------------*/
 void setS98Data( BYTE *in, DWORD ofs, S98DATA *data, DWORD Sync1, DWORD Sync2, int ch )
 {
@@ -98,7 +107,7 @@ void setS98Data( BYTE *in, DWORD ofs, S98DATA *data, DWORD Sync1, DWORD Sync2, i
 			if( checkS98NoteReg( &in[ofs] ) ) {
 				if( checkS98Channel( &in[ofs], ch ) ) {
 					data->Offset = ofs;
-					data->Time = (DWORD)((__int64)time*Sync1/Sync2);
+					data->Time = (DWORD)((__int64)time*Sync1*1000/Sync2);
 					data->OPNAData[0] = in[ofs+0];
 					data->OPNAData[1] = in[ofs+1];
 					data->OPNAData[2] = in[ofs+2];
@@ -128,7 +137,10 @@ void setS98Data( BYTE *in, DWORD ofs, S98DATA *data, DWORD Sync1, DWORD Sync2, i
 }
 
 /*------------------------------------------------------------------------------
-
+ 指定時間のコマンドオフセット取得
+ @param data [in] command data
+ @param time [in] search time (msec)
+ @return command offset
 ------------------------------------------------------------------------------*/
 DWORD getS98Offset( S98DATA *data, DWORD time, int num )
 {
@@ -142,9 +154,16 @@ DWORD getS98Offset( S98DATA *data, DWORD time, int num )
 }
 
 /*------------------------------------------------------------------------------
-
+ ループ情報を付加したS98の出力
+ @param outfile [in] output filename
+ @param in      [in] S98 data
+ @param size    [in] S98 data size
+ @param data    [in] S98DATA structure
+ @param top     [in] search start command num
+ @param end     [in] search end command num
+ @return output num
 ------------------------------------------------------------------------------*/
-int outS98Loop( char *outfile, char *in, S98DATA *data, int top, int end )
+int outS98Loop( char *outfile, char *in, int size, S98DATA *data, int top, int end )
 {
 	int		cmp;
 	S98HEAD	*s98;
@@ -169,8 +188,17 @@ int outS98Loop( char *outfile, char *in, S98DATA *data, int top, int end )
 				sprintf( temp, "%s.%04d.s98", outfile, n );
 				fp = fopen( temp, "wb" );
 				if( fp != NULL ) {
+					int taglen, tagofs;
+					if ( s98->FormatVer == '3' && s98->SongNameOffset ) {
+						tagofs = s98->SongNameOffset;
+						taglen = size - tagofs;
+						s98->SongNameOffset = data[top].Offset + 1;
+					}
 					fwrite( in, data[top].Offset, 1, fp );
 					fputc( 0xfd, fp );
+					if ( s98->FormatVer == '3' && s98->SongNameOffset ) {
+						fwrite( in+tagofs, taglen, 1, fp );
+					}
 					fclose( fp );
 #ifdef MESSAGETYPE_JAPANESE
 					fprintf( stderr, "ループ候補位置を発見しました。%sファイルとして出力します\n", temp );
@@ -187,7 +215,11 @@ int outS98Loop( char *outfile, char *in, S98DATA *data, int top, int end )
 }
 
 /*------------------------------------------------------------------------------
-
+ ログファイル生成
+ @param log    [in] create flag (0 or 1)
+ @param infile [in] original file name
+ @param data   [in] S98DATA structure
+ @param num    [in] total command number
 ------------------------------------------------------------------------------*/
 void OutputLog( int log, char *infile, S98DATA *data, int num )
 {
@@ -215,7 +247,13 @@ void OutputLog( int log, char *infile, S98DATA *data, int num )
 }
 
 /*------------------------------------------------------------------------------
-
+ ループ検索メイン
+ @param infile  [in] input file name
+ @param outfile [in] output file nmame
+ @param start   [in] search time [msec]
+ @param len     [in] search length [msec]
+ @param ch      [in] search channel no
+ @param log     [in] enable [0 or 1]
 ------------------------------------------------------------------------------*/
 int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int log )
 {
@@ -270,6 +308,24 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 	switch( s98->FormatVer ) {
 	case '1':
 		break;
+	case '3':
+		if ( s98->DeviceCount == 0 ) {
+			break;
+		}
+		if ( s98->DeviceCount == 1 ) {
+			S98DEV *dev = (S98DEV*)&in[0x20];
+			if ( dev->DevType == 0x01 || dev->DevType == 0x02 ||
+				 dev->DevType == 0x04 || dev->DevType == 0x0f) {
+				break;
+		    }
+		}
+#ifdef MESSAGETYPE_JAPANESE
+		fprintf( stderr, "OPNA/OPN/PSGのS98ファイルを指定してください\n" );
+#else
+		fprintf( stderr, "Only OPNA/OPN/PSG file\n" );
+#endif
+		free( in );
+		return 0;
 	default:
 #ifdef MESSAGETYPE_JAPANESE
 		fprintf( stderr, "未対応のバージョンです\n" );
@@ -282,9 +338,9 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 	Sync1 = s98->Sync1;
 	if( Sync1 == 0 ) Sync1 = 10;
 	Sync2 = s98->Sync2;
-	if( Sync2 == 0 ) Sync2 = 1;
+	if( Sync2 == 0 ) Sync2 = 1000;
 
-	num = getS98DataNum( fp, &in[s98->DumpDataOffset], ch );
+	num = getS98DataNum( &in[s98->DumpDataOffset], ch );
 	data = (S98DATA *)malloc( num*sizeof(S98DATA) );
 	if( data == NULL ) {
 #ifdef MESSAGETYPE_JAPANESE
@@ -313,7 +369,7 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 		free( in );
 		return 0;
 	}
-	n = outS98Loop( outfile, in, data, top, end );
+	n = outS98Loop( outfile, in, size, data, top, end );
 	OutputLog( log, infile, data, num );
 	if( n == 0 ) {
 #ifdef MESSAGETYPE_JAPANESE
@@ -339,7 +395,7 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 void dispHelpMessage( void )
 {
 	fprintf( stderr,
-		"S98 Loop Searcher Version 0.0.4 by Manbow-J\n"
+		"S98 Loop Searcher Version 0.0.5 by Manbow-J / RuRuRu\n"
 #ifdef MESSAGETYPE_JAPANESE
 		"使い方: s98ls <入力ファイル> [<出力ファイル>] [Option]\n"
 		"Option:\n"
