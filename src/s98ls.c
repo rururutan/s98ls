@@ -11,7 +11,7 @@ bool (*checkS98Channel) (BYTE *, int);
  */
 bool checkS98OpnaNoteReg( BYTE *in )
 {
-	BYTE checkreg[] = {
+	const BYTE checkreg[] = {
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
 		0xa0, 0xa1, 0xa2, 0xa4, 0xa5, 0xa6,
 		0xa8, 0xa9, 0xaa, 0xac, 0xad, 0xae,
@@ -31,9 +31,28 @@ bool checkS98OpnaNoteReg( BYTE *in )
  */
 bool checkS98OpmNoteReg( BYTE *in )
 {
-	BYTE checkreg[] = {
+	const BYTE checkreg[] = {
 		0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
 		0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
+		0xff
+	};
+	int r = 0;
+
+	while( checkreg[r] != 0xff ) {
+		if( in[1] == checkreg[r] ) return true;
+		r++;
+	}
+	return false;
+}
+
+/**
+ * for OPLL
+ */
+bool checkS98OpllNoteReg( BYTE *in )
+{
+	const BYTE checkreg[] = {
+		0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x21, 0x18,
+		0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,
 		0xff
 	};
 	int r = 0;
@@ -50,7 +69,7 @@ bool checkS98OpmNoteReg( BYTE *in )
  */
 bool checkS98OpnaChannel( BYTE *in, int ch )
 {
-	BYTE	reg[9][3] = {
+	const BYTE reg[9][3] = {
 		{ 0x00, 0xa0, 0xa4 },
 		{ 0x00, 0xa1, 0xa5 },
 		{ 0x00, 0xa2, 0xa6 },
@@ -74,7 +93,7 @@ bool checkS98OpnaChannel( BYTE *in, int ch )
  */
 bool checkS98OpmChannel( BYTE *in, int ch )
 {
-	BYTE	reg[8][3] = {
+	const BYTE reg[8][3] = {
 		{ 0x00, 0x28, 0x30 },
 		{ 0x00, 0x29, 0x31 },
 		{ 0x00, 0x2a, 0x32 },
@@ -86,6 +105,31 @@ bool checkS98OpmChannel( BYTE *in, int ch )
 	};
 
 	if( ch == 0xff ) return true;
+	if( (in[0] == reg[ch][0]) && (in[1] == reg[ch][1]) ) return true;
+	if( (in[0] == reg[ch][0]) && (in[1] == reg[ch][2]) ) return true;
+
+	return false;
+}
+
+/**
+ * for OPLL
+ */
+bool checkS98OpllChannel( BYTE *in, int ch )
+{
+	const BYTE reg[9][3] = {
+		{ 0x00, 0x10, 0x20 },
+		{ 0x00, 0x11, 0x21 },
+		{ 0x00, 0x12, 0x22 },
+		{ 0x00, 0x13, 0x23 },
+		{ 0x00, 0x14, 0x24 },
+		{ 0x00, 0x15, 0x25 },
+		{ 0x00, 0x16, 0x26 },
+		{ 0x00, 0x17, 0x27 },
+		{ 0x00, 0x18, 0x28 },
+	};
+
+	if( ch == 0xff ) return true;
+
 	if( (in[0] == reg[ch][0]) && (in[1] == reg[ch][1]) ) return true;
 	if( (in[0] == reg[ch][0]) && (in[1] == reg[ch][2]) ) return true;
 
@@ -371,11 +415,16 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 				checkS98Channel = checkS98OpmChannel;
 				break;
 			}
+			if ( dev->DevType == 0x06 ) {
+				checkS98NoteReg = checkS98OpllNoteReg;
+				checkS98Channel = checkS98OpllChannel;
+				break;
+			}
 		}
 #ifdef MESSAGETYPE_JAPANESE
-		fprintf( stderr, "OPNA/OPN/PSG/OPMのS98ファイルを指定してください\n" );
+		fprintf( stderr, "OPNA/OPN/PSG/OPM/OPLLのS98ファイルを指定してください\n" );
 #else
-		fprintf( stderr, "Only OPNA/OPN/PSG/OPM file\n" );
+		fprintf( stderr, "Only OPNA/OPN/PSG/OPM/OPLL file\n" );
 #endif
 		free( in );
 		return 0;
@@ -448,7 +497,7 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 void dispHelpMessage( void )
 {
 	fprintf( stderr,
-		"S98 Loop Searcher Version 0.0.6 by Manbow-J / RuRuRu / UME-3\n"
+		"S98 Loop Searcher Version 0.0.7 by Manbow-J / RuRuRu / UME-3\n"
 #ifdef MESSAGETYPE_JAPANESE
 		"使い方: s98ls <入力ファイル> [<出力ファイル>] [Option]\n"
 		"Option:\n"
