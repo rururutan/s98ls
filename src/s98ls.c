@@ -1,17 +1,19 @@
-#include	<windows.h>
+
 #include	"stdio.h"
+#include	"stdlib.h"
+#include	"string.h"
 #include	"math.h"
 #include	"s98ls.h"
 
-bool (*checkS98NoteReg) (BYTE*);
-bool (*checkS98Channel) (BYTE *, int);
+bool (*checkS98NoteReg) (uint8_t*);
+bool (*checkS98Channel) (uint8_t *, int);
 
 /**
  * for PSG / OPN / OPNA
  */
-bool checkS98OpnaNoteReg( BYTE *in )
+bool checkS98OpnaNoteReg( uint8_t *in )
 {
-	const BYTE checkreg[] = {
+	const uint8_t checkreg[] = {
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
 		0xa0, 0xa1, 0xa2, 0xa4, 0xa5, 0xa6,
 		0xa8, 0xa9, 0xaa, 0xac, 0xad, 0xae,
@@ -29,9 +31,9 @@ bool checkS98OpnaNoteReg( BYTE *in )
 /**
  * for OPM
  */
-bool checkS98OpmNoteReg( BYTE *in )
+bool checkS98OpmNoteReg( uint8_t *in )
 {
-	const BYTE checkreg[] = {
+	const uint8_t checkreg[] = {
 		0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
 		0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
 		0xff
@@ -48,9 +50,9 @@ bool checkS98OpmNoteReg( BYTE *in )
 /**
  * for OPLL
  */
-bool checkS98OpllNoteReg( BYTE *in )
+bool checkS98OpllNoteReg( uint8_t *in )
 {
-	const BYTE checkreg[] = {
+	const uint8_t checkreg[] = {
 		0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x21, 0x18,
 		0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28,
 		0xff
@@ -67,9 +69,9 @@ bool checkS98OpllNoteReg( BYTE *in )
 /**
  * for PSG / OPN / OPNA
  */
-bool checkS98OpnaChannel( BYTE *in, int ch )
+bool checkS98OpnaChannel( uint8_t *in, int ch )
 {
-	const BYTE reg[9][3] = {
+	const uint8_t reg[9][3] = {
 		{ 0x00, 0xa0, 0xa4 },
 		{ 0x00, 0xa1, 0xa5 },
 		{ 0x00, 0xa2, 0xa6 },
@@ -91,9 +93,9 @@ bool checkS98OpnaChannel( BYTE *in, int ch )
 /**
  * for OPM
  */
-bool checkS98OpmChannel( BYTE *in, int ch )
+bool checkS98OpmChannel( uint8_t *in, int ch )
 {
-	const BYTE reg[8][3] = {
+	const uint8_t reg[8][3] = {
 		{ 0x00, 0x28, 0x30 },
 		{ 0x00, 0x29, 0x31 },
 		{ 0x00, 0x2a, 0x32 },
@@ -114,9 +116,9 @@ bool checkS98OpmChannel( BYTE *in, int ch )
 /**
  * for OPLL
  */
-bool checkS98OpllChannel( BYTE *in, int ch )
+bool checkS98OpllChannel( uint8_t *in, int ch )
 {
-	const BYTE reg[9][3] = {
+	const uint8_t reg[9][3] = {
 		{ 0x00, 0x10, 0x20 },
 		{ 0x00, 0x11, 0x21 },
 		{ 0x00, 0x12, 0x22 },
@@ -137,12 +139,12 @@ bool checkS98OpllChannel( BYTE *in, int ch )
 }
 
 /*------------------------------------------------------------------------------
- ƒ_ƒ“ƒvƒf[ƒ^’†‚Ì”ñWaitƒf[ƒ^”‚ğæ“¾
+ ãƒ€ãƒ³ãƒ—ãƒ‡ãƒ¼ã‚¿ä¸­ã®éWaitãƒ‡ãƒ¼ã‚¿æ•°ã‚’å–å¾—
  @param data [in] S98 dump data
  @param ch   [in] search channel
- @return ‘ƒf[ƒ^”
+ @return ç·ãƒ‡ãƒ¼ã‚¿æ•°
 ------------------------------------------------------------------------------*/
-int getS98DataNum( BYTE *data, int ch )
+int getS98DataNum( uint8_t *data, int ch )
 {
 	int	n = 0;
 
@@ -169,13 +171,13 @@ int getS98DataNum( BYTE *data, int ch )
 		case 0xFD:
 			return n;
 		default:
-			fprintf( stderr, "“ä‚ÌƒRƒ}ƒ“ƒh%02x\n", *data );
+			fprintf( stderr, "è¬ã®ã‚³ãƒãƒ³ãƒ‰%02x\n", *data );
 		}
 	}
 }
 
 /*------------------------------------------------------------------------------
- S98DATA\‘¢‘Ì‚Ì¶¬
+ S98DATAæ§‹é€ ä½“ã®ç”Ÿæˆ
  @param in    [in] S98 data
  @param ofs   [in] S98 dump data offset
  @param data  [out] S98DATA structure
@@ -183,10 +185,10 @@ int getS98DataNum( BYTE *data, int ch )
  @param sync2 [in] timer info2
  @param ch    [in] search channel
 ------------------------------------------------------------------------------*/
-void setS98Data( BYTE *in, DWORD ofs, S98DATA *data, DWORD Sync1, DWORD Sync2, int ch )
+void setS98Data( uint8_t *in, uint32_t ofs, S98DATA *data, uint32_t Sync1, uint32_t Sync2, int ch )
 {
-	DWORD	time = 0;
-	DWORD	temp;
+	uint32_t	time = 0;
+	uint32_t	temp;
 	int		s;
 
 	while( 1 ) {
@@ -196,7 +198,7 @@ void setS98Data( BYTE *in, DWORD ofs, S98DATA *data, DWORD Sync1, DWORD Sync2, i
 			if( checkS98NoteReg( &in[ofs] ) ) {
 				if( checkS98Channel( &in[ofs], ch ) ) {
 					data->Offset = ofs;
-					data->Time = (DWORD)((__int64)time*Sync1*1000/Sync2);
+					data->Time = (uint32_t)((__int64)time*Sync1*1000/Sync2);
 					data->OPNAData[0] = in[ofs+0];
 					data->OPNAData[1] = in[ofs+1];
 					data->OPNAData[2] = in[ofs+2];
@@ -226,12 +228,12 @@ void setS98Data( BYTE *in, DWORD ofs, S98DATA *data, DWORD Sync1, DWORD Sync2, i
 }
 
 /*------------------------------------------------------------------------------
- w’èŠÔ‚ÌƒRƒ}ƒ“ƒhƒIƒtƒZƒbƒgæ“¾
+ æŒ‡å®šæ™‚é–“ã®ã‚³ãƒãƒ³ãƒ‰ã‚ªãƒ•ã‚»ãƒƒãƒˆå–å¾—
  @param data [in] command data
  @param time [in] search time (msec)
  @return command offset
 ------------------------------------------------------------------------------*/
-DWORD getS98Offset( S98DATA *data, DWORD time, int num )
+uint32_t getS98Offset( S98DATA *data, uint32_t time, int num )
 {
 	int	i;
 
@@ -243,7 +245,7 @@ DWORD getS98Offset( S98DATA *data, DWORD time, int num )
 }
 
 /*------------------------------------------------------------------------------
- ƒ‹[ƒvî•ñ‚ğ•t‰Á‚µ‚½S98‚Ìo—Í
+ ãƒ«ãƒ¼ãƒ—æƒ…å ±ã‚’ä»˜åŠ ã—ãŸS98ã®å‡ºåŠ›
  @param outfile [in] output filename
  @param in      [in] S98 data
  @param size    [in] S98 data size
@@ -270,7 +272,7 @@ int outS98Loop( char *outfile, char *in, int size, S98DATA *data, int top, int e
 				 || (data[ofs+i].OPNAData[1] != data[top+i].OPNAData[1])
 				 || (data[ofs+i].OPNAData[0] != data[top+i].OPNAData[0]) ) break;
 			}
-			// ˆê’v
+			// ä¸€è‡´
 			if( i == cmp ) {
 				s98 = (S98HEAD *)in;
 				s98->LoopPointOffset = data[ofs].Offset;
@@ -290,7 +292,7 @@ int outS98Loop( char *outfile, char *in, int size, S98DATA *data, int top, int e
 					}
 					fclose( fp );
 #ifdef MESSAGETYPE_JAPANESE
-					fprintf( stderr, "ƒ‹[ƒvŒó•âˆÊ’u‚ğ”­Œ©‚µ‚Ü‚µ‚½B%sƒtƒ@ƒCƒ‹‚Æ‚µ‚Äo—Í‚µ‚Ü‚·\n", temp );
+					fprintf( stderr, "ãƒ«ãƒ¼ãƒ—å€™è£œä½ç½®ã‚’ç™ºè¦‹ã—ã¾ã—ãŸã€‚%sãƒ•ã‚¡ã‚¤ãƒ«ã¨ã—ã¦å‡ºåŠ›ã—ã¾ã™\n", temp );
 #else
 					fprintf( stderr, "Found loop point. output file : %s\n", temp );
 #endif
@@ -304,7 +306,7 @@ int outS98Loop( char *outfile, char *in, int size, S98DATA *data, int top, int e
 }
 
 /*------------------------------------------------------------------------------
- ƒƒOƒtƒ@ƒCƒ‹¶¬
+ ãƒ­ã‚°ãƒ•ã‚¡ã‚¤ãƒ«ç”Ÿæˆ
  @param log    [in] create flag (0 or 1)
  @param infile [in] original file name
  @param data   [in] S98DATA structure
@@ -336,7 +338,7 @@ void OutputLog( int log, char *infile, S98DATA *data, int num )
 }
 
 /*------------------------------------------------------------------------------
- ƒ‹[ƒvŒŸõƒƒCƒ“
+ ãƒ«ãƒ¼ãƒ—æ¤œç´¢ãƒ¡ã‚¤ãƒ³
  @param infile  [in] input file name
  @param outfile [in] output file nmame
  @param start   [in] search time [msec]
@@ -344,7 +346,7 @@ void OutputLog( int log, char *infile, S98DATA *data, int num )
  @param ch      [in] search channel no
  @param log     [in] enable [0 or 1]
 ------------------------------------------------------------------------------*/
-int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int log )
+int s98Loop( char *infile, char *outfile, uint32_t start, uint32_t len, int ch, int log )
 {
 	FILE	*fp;
 	int		n = 0, num, size;
@@ -352,32 +354,32 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 	S98HEAD	*s98;
 	S98DATA	*data;
 	int		top, end;
-	DWORD	Sync1, Sync2;
+	uint32_t	Sync1, Sync2;
 
 	if( (start == 0)  || (len == 0) ) return 0;
 
 	fp = fopen( infile, "rb" );
 	if( fp == NULL ) {
 #ifdef MESSAGETYPE_JAPANESE
-		fprintf( stderr, "ƒtƒ@ƒCƒ‹‚ªŠJ‚¯‚Ü‚¹‚ñ‚Å‚µ‚½:%s\n", infile );
+		fprintf( stderr, "ãƒ•ã‚¡ã‚¤ãƒ«ãŒé–‹ã‘ã¾ã›ã‚“ã§ã—ãŸ:%s\n", infile );
 #else
 		fprintf( stderr, "Don't Open File:%s\n", infile );
 #endif
 		return 0;
 	}
-	// ƒtƒ@ƒCƒ‹ƒTƒCƒY‚ğæ“¾
+	// ãƒ•ã‚¡ã‚¤ãƒ«ã‚µã‚¤ã‚ºã‚’å–å¾—
 	fseek( fp, 0, SEEK_END );
 	size = ftell( fp );
 	fseek( fp, 0, SEEK_SET );
 
-	// ƒtƒ@ƒCƒ‹“Ç‚İ‚İƒoƒbƒtƒ@ì¬
+	// ãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿ãƒãƒƒãƒ•ã‚¡ä½œæˆ
 	in = (char *)malloc( size );
 	if( in == NULL ) {
 		fclose( fp );
 #ifdef MESSAGETYPE_JAPANESE
-		fprintf( stderr, "ƒƒ‚ƒŠ‚ªŠm•Û‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½\n", infile );
+		fprintf( stderr, "ãƒ¡ãƒ¢ãƒªãŒç¢ºä¿ã§ãã¾ã›ã‚“ã§ã—ãŸ\n" );
 #else
-		fprintf( stderr, "Don't allocate memory\n", infile );
+		fprintf( stderr, "Don't allocate memory\n" );
 #endif
 		return 0;
 	}
@@ -387,7 +389,7 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 	s98 = (S98HEAD *)in;
 	if( strncmp( s98->MAGIC, "S98", 3 ) != 0 ) {
 #ifdef MESSAGETYPE_JAPANESE
-		fprintf( stderr, "s98ƒtƒ@ƒCƒ‹‚Å‚Í‚ ‚è‚Ü‚¹‚ñ\n" );
+		fprintf( stderr, "s98ãƒ•ã‚¡ã‚¤ãƒ«ã§ã¯ã‚ã‚Šã¾ã›ã‚“\n" );
 #else
 		fprintf( stderr, "Don't s98 File\n" );
 #endif
@@ -422,7 +424,7 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 			}
 		}
 #ifdef MESSAGETYPE_JAPANESE
-		fprintf( stderr, "OPNA/OPN/PSG/OPM/OPLL‚ÌS98ƒtƒ@ƒCƒ‹‚ğw’è‚µ‚Ä‚­‚¾‚³‚¢\n" );
+		fprintf( stderr, "OPNA/OPN/PSG/OPM/OPLLã®S98ãƒ•ã‚¡ã‚¤ãƒ«ã‚’æŒ‡å®šã—ã¦ãã ã•ã„\n" );
 #else
 		fprintf( stderr, "Only OPNA/OPN/PSG/OPM/OPLL file\n" );
 #endif
@@ -430,7 +432,7 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 		return 0;
 	default:
 #ifdef MESSAGETYPE_JAPANESE
-		fprintf( stderr, "–¢‘Î‰‚Ìƒo[ƒWƒ‡ƒ“‚Å‚·\n" );
+		fprintf( stderr, "æœªå¯¾å¿œã®ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã§ã™\n" );
 #else
 		fprintf( stderr, "Undefined Version\n" );
 #endif
@@ -446,9 +448,9 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 	data = (S98DATA *)malloc( num*sizeof(S98DATA) );
 	if( data == NULL ) {
 #ifdef MESSAGETYPE_JAPANESE
-		fprintf( stderr, "ƒƒ‚ƒŠ‚ªŠm•Û‚Å‚«‚Ü‚¹‚ñ‚Å‚µ‚½\n", infile );
+		fprintf( stderr, "ãƒ¡ãƒ¢ãƒªãŒç¢ºä¿ã§ãã¾ã›ã‚“ã§ã—ãŸ\n" );
 #else
-		fprintf( stderr, "Don't allocate memory\n", infile );
+		fprintf( stderr, "Don't allocate memory\n" );
 #endif
 		free( in );
 		return 0;
@@ -463,7 +465,7 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 #endif
 	if( top >= end ) {
 #ifdef MESSAGETYPE_JAPANESE
-		fprintf( stderr, "ƒ‹[ƒvƒ|ƒCƒ“ƒgŒŸõŠÔİ’è‚ª³‚µ‚­‚ ‚è‚Ü‚¹‚ñ" );
+		fprintf( stderr, "ãƒ«ãƒ¼ãƒ—ãƒã‚¤ãƒ³ãƒˆæ¤œç´¢æ™‚é–“è¨­å®šãŒæ­£ã—ãã‚ã‚Šã¾ã›ã‚“" );
 #else
 		fprintf( stderr, "Wrong search time by loop point\n" );
 #endif
@@ -475,13 +477,13 @@ int s98Loop( char *infile, char *outfile, DWORD start, DWORD len, int ch, int lo
 	OutputLog( log, infile, data, num );
 	if( n == 0 ) {
 #ifdef MESSAGETYPE_JAPANESE
-		fprintf( stderr, "ƒ‹[ƒvƒ|ƒCƒ“ƒgŒó•â‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ‚Å‚µ‚½" );
+		fprintf( stderr, "ãƒ«ãƒ¼ãƒ—ãƒã‚¤ãƒ³ãƒˆå€™è£œãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“ã§ã—ãŸ" );
 #else
 		fprintf( stderr, "no found to loop point\n" );
 #endif
 	} else {
 #ifdef MESSAGETYPE_JAPANESE
-		fprintf( stderr, "%dŒÂŠ‚Ìƒ‹[ƒvƒ|ƒCƒ“ƒgŒó•â‚ªŒ©‚Â‚©‚è‚Ü‚µ‚½", n );
+		fprintf( stderr, "%då€‹æ‰€ã®ãƒ«ãƒ¼ãƒ—ãƒã‚¤ãƒ³ãƒˆå€™è£œãŒè¦‹ã¤ã‹ã‚Šã¾ã—ãŸ", n );
 #else
 		fprintf( stderr, "%d found to loop point \n" );
 #endif
@@ -499,15 +501,15 @@ void dispHelpMessage( void )
 	fprintf( stderr,
 		"S98 Loop Searcher Version 0.0.7 by Manbow-J / RuRuRu / UME-3\n"
 #ifdef MESSAGETYPE_JAPANESE
-		"g‚¢•û: s98ls <“ü—Íƒtƒ@ƒCƒ‹> [<o—Íƒtƒ@ƒCƒ‹>] [Option]\n"
+		"ä½¿ã„æ–¹: s98ls <å…¥åŠ›ãƒ•ã‚¡ã‚¤ãƒ«> [<å‡ºåŠ›ãƒ•ã‚¡ã‚¤ãƒ«>] [Option]\n"
 		"Option:\n"
-		"        -sxx ... xx•b‚ÌˆÊ’u‚©‚çƒ‹[ƒv‚ÌŒŸõ‚ğŠJn‚µ‚Ü‚·B•K‚¸w’è‚µ‚Ä‚­‚¾‚³‚¢\n"
-		"        -lxx ... ŠJnˆÊ’u‚©‚çxx•b‚ÌŠÔ‚ğƒ‹[ƒvŒŸõƒf[ƒ^‚Æ‚µ‚Ü‚·(default:1•b)B\n"
-		"        -cxx ... “Á’è‚Ìƒ`ƒƒƒ“ƒlƒ‹ƒf[ƒ^‚Ì‚İ‚Åƒ‹[ƒvˆÊ’u‚ğŒŸõ‚µ‚Ü‚·B\n"
-		"        -o   ... ƒ‹[ƒvŒŸõ‚ÌƒƒO‚ğo—Í‚µ‚Ü‚·B\n"
-		"                 o—Íƒtƒ@ƒCƒ‹‚Í\"<“ü—Íƒtƒ@ƒCƒ‹>.log\"‚Å‚·B\n"
-		"  * o—Íƒtƒ@ƒCƒ‹‚ÍÈ—ª‚Å‚«‚Ü‚·BÈ—ª‚µ‚½ê‡A\"<“ü—Íƒtƒ@ƒCƒ‹>.xxxx.s98\"\n"
-		"    ‚Æ‚¢‚¤ƒtƒ@ƒCƒ‹–¼‚Åo—Í‚³‚ê‚Ü‚·\n"
+		"        -sxx ... xxç§’ã®ä½ç½®ã‹ã‚‰ãƒ«ãƒ¼ãƒ—ã®æ¤œç´¢ã‚’é–‹å§‹ã—ã¾ã™ã€‚å¿…ãšæŒ‡å®šã—ã¦ãã ã•ã„\n"
+		"        -lxx ... é–‹å§‹ä½ç½®ã‹ã‚‰xxç§’ã®é–“ã‚’ãƒ«ãƒ¼ãƒ—æ¤œç´¢ãƒ‡ãƒ¼ã‚¿ã¨ã—ã¾ã™(default:1ç§’)ã€‚\n"
+		"        -cxx ... ç‰¹å®šã®ãƒãƒ£ãƒ³ãƒãƒ«ãƒ‡ãƒ¼ã‚¿ã®ã¿ã§ãƒ«ãƒ¼ãƒ—ä½ç½®ã‚’æ¤œç´¢ã—ã¾ã™ã€‚\n"
+		"        -o   ... ãƒ«ãƒ¼ãƒ—æ¤œç´¢æ™‚ã®ãƒ­ã‚°ã‚’å‡ºåŠ›ã—ã¾ã™ã€‚\n"
+		"                 å‡ºåŠ›ãƒ•ã‚¡ã‚¤ãƒ«ã¯\"<å…¥åŠ›ãƒ•ã‚¡ã‚¤ãƒ«>.log\"ã§ã™ã€‚\n"
+		"  * å‡ºåŠ›ãƒ•ã‚¡ã‚¤ãƒ«ã¯çœç•¥ã§ãã¾ã™ã€‚çœç•¥ã—ãŸå ´åˆã€\"<å…¥åŠ›ãƒ•ã‚¡ã‚¤ãƒ«>.xxxx.s98\"\n"
+		"    ã¨ã„ã†ãƒ•ã‚¡ã‚¤ãƒ«åã§å‡ºåŠ›ã•ã‚Œã¾ã™\n"
 #else
 		"Usage: s98ls <input file(.s98)> [<outputfile>] [Option]\n"
 		"Option:\n"
@@ -529,10 +531,10 @@ int main( int argc, char *argv[] )
 {
 	char	*nArg[2];
 	int		i = 1, n = 0;
-	DWORD	LoopPoint = 0;
-	DWORD	start = 0;
-	DWORD	len = 1;
-	DWORD	log = 0;
+	uint32_t	LoopPoint = 0;
+	uint32_t	start = 0;
+	uint32_t	len = 1;
+	uint32_t	log = 0;
 	int		ch = 0xff;
 
 	if( argc <= 1 ) {
@@ -557,7 +559,7 @@ int main( int argc, char *argv[] )
 				sscanf( &argv[i][2], "%d", &ch );
 				if( ch > 9 ) {
 #ifdef MESSAGETYPE_JAPANESE
-					fprintf( stderr, "ƒ`ƒƒƒ“ƒlƒ‹‚Ìw’è‚ªŠÔˆá‚Á‚Ä‚¢‚Ü‚·: %s\n", argv[i] );
+					fprintf( stderr, "ãƒãƒ£ãƒ³ãƒãƒ«ã®æŒ‡å®šãŒé–“é•ã£ã¦ã„ã¾ã™: %s\n", argv[i] );
 #else
 					fprintf( stderr, "Abnormal channel no: %s\n", argv[i] );
 #endif
@@ -569,7 +571,7 @@ int main( int argc, char *argv[] )
 				break;
 			default:
 #ifdef MESSAGETYPE_JAPANESE
-				fprintf( stderr, "–¢’è‹`‚ÈƒIƒvƒVƒ‡ƒ“:%s\n", argv[i] );
+				fprintf( stderr, "æœªå®šç¾©ãªã‚ªãƒ—ã‚·ãƒ§ãƒ³:%s\n", argv[i] );
 #else
 				fprintf( stderr, "Undefined Option:%s\n", argv[i] );
 #endif
@@ -584,7 +586,7 @@ int main( int argc, char *argv[] )
 	}
 	if( start == 0 ) {
 #ifdef MESSAGETYPE_JAPANESE
-				fprintf( stderr, "ŒŸõˆÊ’u‚Í•K‚¸w’è‚µ‚Ä‚­‚¾‚³‚¢\n" );
+				fprintf( stderr, "æ¤œç´¢ä½ç½®ã¯å¿…ãšæŒ‡å®šã—ã¦ãã ã•ã„\n" );
 #else
 				fprintf( stderr, "Need Search point\n" );
 #endif

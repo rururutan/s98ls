@@ -1,16 +1,7 @@
-#include	<windows.h>
+#include	"stdint.h"
+#include	"stdbool.h"
 
-#define	MESSAGETYPE_JAPANESE		/* if you defined, message is Japanese. */
-
-#ifndef	bool
-#define	bool	int
-#endif
-#ifndef	true
-#define	true	1
-#endif
-#ifndef	false
-#define	false	0
-#endif
+//#define	MESSAGETYPE_JAPANESE		/* if you defined, message is Japanese. */
 
 /*
 [HEADER FORMAT]
@@ -28,19 +19,19 @@
 typedef struct {
 	char	MAGIC[3];
 	char	FormatVer;
-	DWORD	Sync1;
-	DWORD	Sync2;
-	DWORD	CompSize;
-	DWORD	SongNameOffset;
-	DWORD	DumpDataOffset;
-	DWORD	LoopPointOffset;
-	DWORD	DeviceCount;
+	uint32_t	Sync1;
+	uint32_t	Sync2;
+	uint32_t	CompSize;
+	uint32_t	SongNameOffset;
+	uint32_t	DumpDataOffset;
+	uint32_t	LoopPointOffset;
+	uint32_t	DeviceCount;
 } S98HEAD;
 
 typedef struct {
-	DWORD	DevType;
-	DWORD	DevClk;
-	DWORD	DevPan;
+	uint32_t	DevType;
+	uint32_t	DevClk;
+	uint32_t	DevPan;
 	char	Reserve[4];
 } S98DEV;
 
@@ -55,8 +46,8 @@ FD        END/LOOP
 */
 
 typedef struct {
-	DWORD	Offset;			/* data offset		*/
-	DWORD	Time;			/* Play Time(mSec)	*/
+	uint32_t	Offset;			/* data offset		*/
+	uint32_t	Time;			/* Play Time(mSec)	*/
 	char	OPNAData[3+1];
 } S98DATA;
 
